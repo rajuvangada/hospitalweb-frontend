@@ -1,11 +1,13 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  Activity, Menu, X, Bell, User, LogOut, ChevronRight,
+  Menu, X, Bell, User, LogOut, ChevronRight, Search, 
   LayoutDashboard, Calendar, History, FolderHeart, FileText, 
-  Users, CalendarClock, PenTool, ClipboardList, Wallet, FilePieChart
+  Users, CalendarClock, PenTool, ClipboardList, Wallet, FilePieChart,
+  ShoppingCart, Database
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthAppContext';
+import { toast } from 'react-hot-toast';
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useContext(AuthContext);
@@ -16,11 +18,29 @@ export default function DashboardLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [cartCount, setCartCount] = useState(0);
+
+  const updateCartCount = () => {
+    try {
+      const cart = JSON.parse(localStorage.getItem('medicine_cart') || '[]');
+      const count = cart.reduce((acc, item) => acc + (item.quantity || 1), 0);
+      setCartCount(count);
+    } catch (e) {
+      setCartCount(0);
+    }
+  };
+
+  useEffect(() => {
+    updateCartCount();
+    const interval = setInterval(updateCartCount, 1200);
+    return () => clearInterval(interval);
+  }, []);
 
   // Mock Notifications
   const [notifications, setNotifications] = useState([
     { id: 1, title: "Appointment Confirmed", desc: "Your appointment with Dr. Sarah Jenkins is scheduled.", time: "10m ago", read: false },
-    { id: 2, title: "New Prescription", desc: "Dr. Elena Rostova added a prescription.", time: "2h ago", read: false },
+    { id: 2, title: "New Prescription", desc: "Dr. Gregory House added a prescription.", time: "2h ago", read: false },
     { id: 3, title: "Record Uploaded", desc: "Your blood panel test record is available.", time: "1d ago", read: true },
   ]);
 
@@ -28,14 +48,15 @@ export default function DashboardLayout({ children }) {
 
   const handleLogout = () => {
     logout();
+    toast.success("Logged out successfully");
     navigate('/login');
   };
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    toast.success("All notifications marked as read");
   };
 
-  // Define links based on user role
   const getSidebarLinks = () => {
     if (!user) return [];
     
@@ -43,33 +64,29 @@ export default function DashboardLayout({ children }) {
       case 'patient':
         return [
           { name: "Dashboard", path: "/patient/dashboard", icon: LayoutDashboard },
-          { name: "My Profile", path: "/patient/profile", icon: User },
-          { name: "Book Appointment", path: "/patient/book", icon: Calendar },
-          { name: "My Appointments", path: "/patient/appointments", icon: History },
-          { name: "Medical Reports", path: "/patient/records", icon: FolderHeart },
-          { name: "Upload Reports", path: "/patient/records", icon: FolderHeart },
+          { name: "Appointments", path: "/patient/appointments", icon: Calendar },
+          { name: "Doctors", path: "/patient/book", icon: Users },
+          { name: "Browse Medicines", path: "/patient/medicines", icon: Database },
+          { name: "Medicine Cart", path: "/patient/cart", icon: ShoppingCart },
+          { name: "Medical Records", path: "/patient/records", icon: FolderHeart },
           { name: "Prescriptions", path: "/patient/prescriptions", icon: FileText },
+          { name: "Profile", path: "/patient/profile", icon: User },
         ];
       case 'doctor':
         return [
           { name: "Dashboard", path: "/doctor/dashboard", icon: LayoutDashboard },
           { name: "Patients", path: "/doctor/patients", icon: Users },
           { name: "Appointments", path: "/doctor/appointments", icon: ClipboardList },
-          { name: "Schedule", path: "/doctor/schedule", icon: CalendarClock },
           { name: "Prescriptions", path: "/doctor/write-prescription", icon: PenTool },
-          { name: "Upload Reports", path: "/doctor/patients", icon: FolderHeart },
-          { name: "Profile", path: "/doctor/schedule", icon: User },
+          { name: "Schedule", path: "/doctor/schedule", icon: CalendarClock },
         ];
       case 'admin':
         return [
           { name: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
-          { name: "Manage Doctors", path: "/admin/doctors", icon: Users },
-          { name: "Manage Patients", path: "/admin/patients", icon: ClipboardList },
-          { name: "Manage Medicines", path: "/admin/dashboard", icon: FileText },
-          { name: "Manage Appointments", path: "/admin/dashboard", icon: Calendar },
+          { name: "Doctors", path: "/admin/doctors", icon: Users },
+          { name: "Patients", path: "/admin/patients", icon: ClipboardList },
           { name: "Reports", path: "/admin/reports", icon: FilePieChart },
-          { name: "Analytics", path: "/admin/revenue", icon: Wallet },
-          { name: "Uploaded Files", path: "/admin/reports", icon: FolderHeart },
+          { name: "Revenue", path: "/admin/revenue", icon: Wallet },
         ];
       default:
         return [];
@@ -78,51 +95,95 @@ export default function DashboardLayout({ children }) {
 
   const sidebarLinks = getSidebarLinks();
 
-  // Close overlays on path changes
   useEffect(() => {
     setSidebarOpen(false);
     setProfileOpen(false);
     setNotifOpen(false);
   }, [location.pathname]);
 
+  // Determine current section title
+  const getPageTitle = () => {
+    const activeLink = sidebarLinks.find(link => location.pathname === link.path);
+    return activeLink ? activeLink.name : "Dashboard";
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground flex">
-      {/* 1. Mobile Sidebar Backdrop */}
+    <div className="min-h-screen bg-[#F4F0EB] text-[#111827] flex font-sans antialiased">
+      
+      {/* Mobile Sidebar Backdrop */}
       {sidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden transition-all duration-300"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* 2. Sidebar Component */}
+      {/* Promage Sticky Sidebar: Dark Charcoal background */}
       <aside 
-        className={`fixed inset-y-0 left-0 bg-card border-r border-border/50 z-40 flex flex-col transition-all duration-300 transform md:sticky md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 bg-[#131313] text-[#989898] z-40 flex flex-col transition-all duration-300 transform md:sticky md:translate-x-0 h-screen shrink-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } ${collapsed ? 'w-20' : 'w-64'}`}
       >
-        {/* Sidebar Header */}
-        <div className="h-16 flex items-center justify-between px-5 border-b border-border/30">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-md shadow-primary/20 shrink-0">
-              <Activity className="w-5.5 h-5.5" />
+        {/* Promage Logo with Orange icon */}
+        <div className="h-20 flex items-center justify-between px-6 border-b border-white/5">
+          <Link to="/" className="flex items-center gap-3">
+            {/* Orange Flower Logo Icon */}
+            <div className="w-8 h-8 rounded-full bg-[#EA580C] flex items-center justify-center text-white shrink-0">
+              <span className="font-extrabold text-sm">✦</span>
             </div>
             {!collapsed && (
-              <span className="text-lg font-black tracking-tight text-foreground transition-all duration-300">
-                Medi<span className="text-primary">HMS</span>
+              <span className="text-lg font-bold text-white tracking-tight font-display">
+                Care<span className="text-[#EA580C] font-extrabold">Link</span>
               </span>
             )}
           </Link>
           <button 
-            className="md:hidden text-muted-foreground hover:text-foreground"
+            className="md:hidden text-slate-400 hover:text-white"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+        {/* Action Capsule Pill Button below Logo */}
+        <div className="px-4 py-5 border-b border-white/5">
+          {user?.role === 'patient' && (
+            <Link
+              to="/patient/book"
+              className={`flex items-center justify-center gap-2 w-full py-3 bg-white hover:bg-white/90 text-[#131313] font-bold rounded-full transition-all text-xs uppercase tracking-wider ${collapsed ? 'px-0' : 'px-4'}`}
+            >
+              <div className="w-5 h-5 rounded-full bg-[#EA580C] flex items-center justify-center text-white font-bold text-xs">
+                +
+              </div>
+              {!collapsed && <span>Book Slot</span>}
+            </Link>
+          )}
+          {user?.role === 'doctor' && (
+            <Link
+              to="/doctor/write-prescription"
+              className={`flex items-center justify-center gap-2 w-full py-3 bg-white hover:bg-white/90 text-[#131313] font-bold rounded-full transition-all text-xs uppercase tracking-wider ${collapsed ? 'px-0' : 'px-4'}`}
+            >
+              <div className="w-5 h-5 rounded-full bg-[#EA580C] flex items-center justify-center text-white font-bold text-xs">
+                +
+              </div>
+              {!collapsed && <span>Write Rx</span>}
+            </Link>
+          )}
+          {user?.role === 'admin' && (
+            <Link
+              to="/admin/doctors"
+              className={`flex items-center justify-center gap-2 w-full py-3 bg-white hover:bg-white/90 text-[#131313] font-bold rounded-full transition-all text-xs uppercase tracking-wider ${collapsed ? 'px-0' : 'px-4'}`}
+            >
+              <div className="w-5 h-5 rounded-full bg-[#EA580C] flex items-center justify-center text-white font-bold text-xs">
+                +
+              </div>
+              {!collapsed && <span>Add Doctor</span>}
+            </Link>
+          )}
+        </div>
+
+        {/* Navigation Links: matching Promage style */}
+        <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
           {sidebarLinks.map((link, idx) => {
             const Icon = link.icon;
             const isActive = location.pathname === link.path;
@@ -131,18 +192,28 @@ export default function DashboardLayout({ children }) {
               <Link
                 key={idx}
                 to={link.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 group relative ${
+                className={`flex items-center gap-3.5 px-4 py-3 rounded-full text-sm font-semibold transition-all duration-200 group relative ${
                   isActive 
-                    ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20' 
-                    : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                    ? 'bg-white text-[#131313] shadow-md' 
+                    : 'text-[#989898] hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-primary-foreground' : 'text-muted-foreground group-hover:scale-105 transition-transform'}`} />
+                <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-[#EA580C]' : 'text-[#989898] group-hover:scale-105'}`} />
                 {!collapsed && <span className="truncate">{link.name}</span>}
+                {!collapsed && link.name === "Medicine Cart" && cartCount > 0 && (
+                  <span className="ml-auto bg-[#EA580C] text-white text-[9px] font-black px-2 py-0.5 rounded-full shrink-0">
+                    {cartCount}
+                  </span>
+                )}
                 
+                {/* Active Indicator Orange Dot */}
+                {isActive && collapsed && (
+                  <div className="absolute right-3 w-1.5 h-1.5 bg-[#EA580C] rounded-full" />
+                )}
+
                 {/* Collapsed Tooltip */}
                 {collapsed && (
-                  <div className="absolute left-full ml-4 px-2 py-1 bg-popover border border-border text-xs text-foreground font-semibold rounded-md shadow-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 pointer-events-none transition-all duration-150 z-50 origin-left">
+                  <div className="absolute left-full ml-4 px-2.5 py-1.5 bg-[#131313] text-white text-xs font-semibold rounded-md shadow-lg opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 pointer-events-none transition-all duration-150 z-50 origin-left border border-white/5">
                     {link.name}
                   </div>
                 )}
@@ -151,20 +222,19 @@ export default function DashboardLayout({ children }) {
           })}
         </nav>
 
-        {/* Collapsible toggle & Logout */}
-        <div className="p-4 border-t border-border/30 flex flex-col gap-2">
-          {/* Collapse toggle (desktop only) */}
+        {/* Collapse toggle & Logout */}
+        <div className="p-4 border-t border-white/5 flex flex-col gap-2 bg-[#0d0d0d]">
           <button 
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden md:flex items-center gap-3 w-full px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            className="hidden md:flex items-center gap-3 w-full px-4 py-2.5 text-xs font-extrabold text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <ChevronRight className={`w-4 h-4 transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`} />
-            {!collapsed && <span>Collapse Sidebar</span>}
+            {!collapsed && <span className="uppercase tracking-widest text-[10px]">Collapse</span>}
           </button>
 
           <button
             onClick={handleLogout}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-destructive hover:bg-destructive/10 transition-all cursor-pointer ${
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-full text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-all cursor-pointer ${
               collapsed ? 'justify-center' : ''
             }`}
           >
@@ -174,34 +244,49 @@ export default function DashboardLayout({ children }) {
         </div>
       </aside>
 
-      {/* 3. Main Dashboard Layout Area */}
+      {/* Main Dashboard Layout Area */}
       <div className="flex-1 flex flex-col min-w-0">
         
-        {/* Top Navbar */}
-        <header className="h-16 border-b border-border/50 bg-card/60 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-6">
-          <div className="flex items-center gap-4">
+        {/* Promage Sticky Header: Warm Sand background matching container */}
+        <header className="h-20 bg-[#F4F0EB] sticky top-0 z-30 flex items-center justify-between px-8">
+          <div className="flex items-center gap-4 flex-1">
             <button 
-              className="md:hidden p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
+              className="md:hidden p-2 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-200/50"
               onClick={() => setSidebarOpen(true)}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5.5 h-5.5" />
             </button>
-            <div className="hidden sm:flex flex-col">
-              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider leading-none">Role Access</span>
-              <span className="text-sm font-bold text-foreground capitalize mt-1">{user?.role} Portal</span>
-            </div>
+
+            {/* Header Title */}
+            <h2 className="text-xl font-bold font-display text-[#111827] hidden sm:block">
+              {getPageTitle()}
+            </h2>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Notifications Trigger */}
+          <div className="flex items-center gap-5">
+            {/* Header Search Bar matching Promage center search */}
+            <div className="hidden md:flex items-center relative w-64 group">
+              <span className="absolute left-3.5 text-slate-400 pointer-events-none group-focus-within:text-[#EA580C]">
+                <Search className="w-4 h-4" />
+              </span>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 pl-9 pr-4 bg-white border border-[#E6E1DA] hover:border-slate-350 focus:border-[#EA580C] rounded-full text-xs font-semibold focus:outline-none transition-all"
+              />
+            </div>
+
+            {/* Notifications Trigger Bell */}
             <div className="relative">
               <button 
                 onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
-                className="relative w-10 h-10 rounded-full flex items-center justify-center border border-border/50 hover:bg-muted text-foreground transition-all cursor-pointer"
+                className="relative w-10 h-10 rounded-full flex items-center justify-center bg-white border border-[#E6E1DA] hover:bg-slate-50 text-slate-700 transition-all cursor-pointer"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[9px] font-black text-destructive-foreground ring-2 ring-card animate-bounce">
+                  <span className="absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[8px] font-black text-white ring-2 ring-white">
                     {unreadCount}
                   </span>
                 )}
@@ -209,26 +294,26 @@ export default function DashboardLayout({ children }) {
 
               {/* Notifications Dropdown */}
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-popover border border-border shadow-xl z-50 flex flex-col py-1 animate-in fade-in-50 slide-in-from-top-1">
-                  <div className="px-4 py-2 border-b border-border/40 flex justify-between items-center bg-muted/20">
-                    <span className="text-xs font-bold text-foreground">Notifications</span>
+                <div className="absolute right-0 mt-3.5 w-80 rounded-2xl bg-white border border-[#E6E1DA] shadow-xl z-50 flex flex-col py-1.5 animate-in fade-in-50 slide-in-from-top-1">
+                  <div className="px-4 py-2 border-b border-[#E6E1DA] flex justify-between items-center bg-[#F4F0EB]/50">
+                    <span className="text-xs font-bold text-slate-800">Notifications</span>
                     {unreadCount > 0 && (
                       <button 
                         onClick={markAllRead} 
-                        className="text-[10px] text-primary hover:underline font-bold bg-transparent"
+                        className="text-[10px] text-[#EA580C] hover:underline font-bold bg-transparent cursor-pointer"
                       >
                         Mark all read
                       </button>
                     )}
                   </div>
-                  <div className="max-h-64 overflow-y-auto divide-y divide-border/30">
+                  <div className="max-h-64 overflow-y-auto divide-y divide-[#E6E1DA]">
                     {notifications.map(notif => (
-                      <div key={notif.id} className={`p-3 text-xs transition-colors hover:bg-muted/30 ${!notif.read ? 'bg-primary/5' : ''}`}>
+                      <div key={notif.id} className={`p-3 text-xs transition-colors hover:bg-slate-50 ${!notif.read ? 'bg-[#EA580C]/5' : ''}`}>
                         <div className="flex justify-between items-center">
-                          <span className="font-bold text-foreground">{notif.title}</span>
-                          <span className="text-[10px] text-muted-foreground font-medium">{notif.time}</span>
+                          <span className="font-bold text-slate-800">{notif.title}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">{notif.time}</span>
                         </div>
-                        <p className="text-muted-foreground mt-0.5 leading-relaxed">{notif.desc}</p>
+                        <p className="text-slate-500 mt-1 leading-relaxed">{notif.desc}</p>
                       </div>
                     ))}
                   </div>
@@ -236,33 +321,36 @@ export default function DashboardLayout({ children }) {
               )}
             </div>
 
-            {/* Profile Dropdown */}
+            {/* Profile Dropdown matching Promage circle right pill */}
             {user && (
               <div className="relative">
                 <button 
                   onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-                  className="flex items-center gap-2 pl-2 pr-3 py-1 bg-muted/50 border border-border/50 rounded-full hover:bg-muted transition-colors cursor-pointer"
+                  className="flex items-center gap-2 pl-2 pr-3.5 py-1 bg-white border border-[#E6E1DA] rounded-full hover:bg-slate-50 transition-all cursor-pointer"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                    {user.name.charAt(0).toUpperCase()}
+                  <div className="w-8 h-8 rounded-full bg-[#EA580C]/10 text-[#EA580C] flex items-center justify-center font-bold text-xs shrink-0">
+                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
                   </div>
-                  <span className="hidden md:inline text-xs font-bold text-foreground truncate max-w-[100px]">{user.name.split(' ')[0]}</span>
+                  <div className="hidden sm:flex flex-col text-left shrink-0 max-w-[100px]">
+                    <span className="text-xs font-bold text-[#111827] truncate leading-none">{user.name.split(' ')[0]}</span>
+                    <span className="text-[8px] text-slate-400 font-black uppercase tracking-wider leading-none mt-1">{user.role}</span>
+                  </div>
                 </button>
 
                 {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-52 rounded-2xl bg-popover border border-border shadow-xl z-50 flex flex-col py-2 animate-in fade-in-50 slide-in-from-top-1">
-                    <div className="px-4 py-2 border-b border-border/40 mb-1">
-                      <p className="text-xs font-bold text-foreground truncate">{user.name}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                  <div className="absolute right-0 mt-3.5 w-56 rounded-2xl bg-white border border-[#E6E1DA] shadow-xl z-50 flex flex-col py-2 animate-in fade-in-50 slide-in-from-top-1">
+                    <div className="px-4 py-2.5 border-b border-[#E6E1DA] mb-1">
+                      <p className="text-xs font-bold text-slate-900 truncate">{user.name}</p>
+                      <p className="text-[10px] text-slate-400 truncate mt-0.5">{user.email}</p>
                     </div>
                     {user.role === 'patient' && (
-                      <Link to="/patient/profile" className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold hover:bg-muted text-foreground transition-colors">
-                        <User className="w-4 h-4 text-muted-foreground" /> View Profile
+                      <Link to="/patient/profile" className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold hover:bg-slate-50 text-slate-700 transition-colors">
+                        <User className="w-4 h-4 text-slate-400" /> View Profile
                       </Link>
                     )}
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs font-semibold hover:bg-destructive/10 text-destructive transition-colors text-left w-full mt-1 cursor-pointer font-bold"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold hover:bg-red-50 text-red-500 transition-colors text-left w-full mt-1 cursor-pointer font-bold"
                     >
                       <LogOut className="w-4 h-4" /> Logout
                     </button>

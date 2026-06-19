@@ -16,6 +16,8 @@ import BookAppointment from './pages/BookAppointment';
 import AppointmentHistory from './pages/AppointmentHistory';
 import MedicalRecords from './pages/MedicalRecords';
 import Prescriptions from './pages/Prescriptions';
+import BrowseMedicines from './pages/BrowseMedicines';
+import Cart from './pages/Cart';
 
 // Doctor Panel Pages
 import DoctorDashboard from './pages/DoctorDashboard';
@@ -114,6 +116,26 @@ function App() {
               <ProtectedRoute roles={['patient']}>
                 <DashboardLayout>
                   <Prescriptions />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/patient/medicines"
+            element={
+              <ProtectedRoute roles={['patient']}>
+                <DashboardLayout>
+                  <BrowseMedicines />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/patient/cart"
+            element={
+              <ProtectedRoute roles={['patient']}>
+                <DashboardLayout>
+                  <Cart />
                 </DashboardLayout>
               </ProtectedRoute>
             }

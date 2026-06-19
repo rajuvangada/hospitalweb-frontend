@@ -1,8 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', 'Geist Sans', system-ui, sans-serif;
+  --font-display: 'Outfit', sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -16,6 +17,14 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -26,40 +35,64 @@
 }
 
 :root {
-  --background: #FFFFFF;
-  --foreground: #1F2937;
-  --card: #F8FAFC;
-  --card-foreground: #1F2937;
+  --background: #F4F0EB;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-foreground: #111827;
   
-  --primary: #0077B6; 
+  --primary: #EA580C; 
   --primary-foreground: #FFFFFF;
-  --secondary: #90E0EF; 
-  --secondary-foreground: #1F2937;
+  --secondary: #0F4C81; 
+  --secondary-foreground: #FFFFFF;
   
-  --muted: #F8FAFC; 
-  --muted-foreground: #6B7280;
+  --muted: #E6E1DA; 
+  --muted-foreground: #7C7267;
   
-  --accent: #2DC653;
+  --accent: #06B6D4;
   --accent-foreground: #FFFFFF;
   
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: #0077B6;
+  --success: #16A34A;
+  --success-foreground: #FFFFFF;
+  --warning: #D97706;
+  --warning-foreground: #FFFFFF;
+  --danger: #DC2626;
+  --danger-foreground: #FFFFFF;
+  
+  --border: #E6E1DA;
+  --input: #E6E1DA;
+  --ring: #EA580C;
 }
 
+/* Fallback/Forced Light mode for entire site */
 html {
   scroll-behavior: smooth;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 body {
   font-family: 'Plus Jakarta Sans', 'Geist Sans', system-ui, sans-serif;
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
 }
 
 * {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #C4BDB3;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A8A095;
 }

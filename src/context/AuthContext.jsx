@@ -5,74 +5,51 @@ import { AuthContext } from './AuthAppContext';
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) return JSON.parse(storedUser);
-    
-    // TEMPORARY TESTING MODE: Dynamically detect path and map role so dashboards don't crash
-    const path = window.location.pathname;
-    let role = 'patient';
-    let name = 'Test Patient';
-    if (path.startsWith('/admin')) {
-      role = 'admin';
-      name = 'Test Administrator';
-    } else if (path.startsWith('/doctor')) {
-      role = 'doctor';
-      name = 'Dr. Sarah Jenkins';
-    }
-    
-    return {
-      id: "test-user-id",
-      name,
-      email: `${role}@test.com`,
-      role
-    };
+    return storedUser ? JSON.parse(storedUser) : null;
   });
   
   const [token, setToken] = useState(() => {
-    return localStorage.getItem('token') || 'test-session-token-12345';
+    return localStorage.getItem('token') || null;
   });
   
-  // Theme Management (Light Theme only - keep simple theme variable)
-  const [theme, setTheme] = useState('light');
+  // Theme Management (Support Light Mode Only)
+  const [theme] = useState('light');
 
-  // Sync theme to light
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
   }, []);
 
-  // Sync user state on path change for Testing Mode
-  useEffect(() => {
-    if (!localStorage.getItem('token')) {
-      const path = window.location.pathname;
-      let role = 'patient';
-      let name = 'Test Patient';
-      if (path.startsWith('/admin')) {
-        role = 'admin';
-        name = 'Test Administrator';
-      } else if (path.startsWith('/doctor')) {
-        role = 'doctor';
-        name = 'Dr. Sarah Jenkins';
-      }
-      setUser({
-        id: "test-user-id",
-        name,
-        email: `${role}@test.com`,
-        role
-      });
-    }
-  }, [window.location.pathname]);
-
   const toggleTheme = () => {
-    // Disabled in testing mode (strict light theme)
+    // No-op
   };
 
   useEffect(() => {
-    if (token && token !== 'test-session-token-12345') {
+    if (token) {
       localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
     }
   }, [token]);
 
   const login = async (email, password) => {
+    // Frontend-only demo login fallback
+    if (email === 'admin@hospital.com' && password === 'Admin@123') {
+      const demoUser = {
+        id: "demo-admin-id",
+        name: "Demo Administrator",
+        email: "admin@hospital.com",
+        role: "admin"
+      };
+      const demoToken = "demo-session-token-admin";
+      localStorage.setItem('token', demoToken);
+      localStorage.setItem('user', JSON.stringify(demoUser));
+      setToken(demoToken);
+      setUser(demoUser);
+      return demoUser;
+    }
+
     const response = await api.post('/auth/login', { email, password });
     const data = response.data;
     if (data.token) {
@@ -99,6 +76,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
   };
